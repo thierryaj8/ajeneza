@@ -1,29 +1,51 @@
-import { MongoMemoryServer } from "mongodb-memory-server";
-import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import request from "supertest";
+import { connectDb, prisma } from "../src/config/db.js";
 import { createApp } from "../src/app.js";
-import { User } from "../src/models/index.js";
 
 export async function startTestEnv() {
-  // Use an existing server when MONGO_TEST_URI is set (e.g. CI service or Docker); otherwise start an in-memory one.
-  const external = process.env.MONGO_TEST_URI;
-  const mongo = external ? null : await MongoMemoryServer.create();
-  const base = external ?? mongo!.getUri();
-  await mongoose.connect(base, { dbName: `ajeneza_test_${Date.now()}` });
+  const testUrl = process.env.TEST_DATABASE_URL;
+  if (!testUrl) throw new Error("Set TEST_DATABASE_URL to a dedicated PostgreSQL database before running API tests");
+  const databaseName = new URL(testUrl).pathname.split("/").filter(Boolean)[0] ?? "";
+  if (!databaseName.toLowerCase().includes("test")) throw new Error("TEST_DATABASE_URL must point to a database with 'test' in its name");
+  process.env.DATABASE_URL = testUrl;
+  await connectDb();
+  await clearDatabase();
   const app = createApp();
   return {
     app,
     async stop() {
-      await mongoose.connection.dropDatabase();
-      await mongoose.disconnect();
-      await mongo?.stop();
+      await clearDatabase();
+      await prisma.$disconnect();
     },
   };
 }
 
+async function clearDatabase() {
+  await prisma.comment.deleteMany();
+  await prisma.article.deleteMany();
+  await prisma.research.deleteMany();
+  await prisma.venture.deleteMany();
+  await prisma.project.deleteMany();
+  await prisma.book.deleteMany();
+  await prisma.achievement.deleteMany();
+  await prisma.event.deleteMany();
+  await prisma.timelineEntry.deleteMany();
+  await prisma.readingItem.deleteMany();
+  await prisma.category.deleteMany();
+  await prisma.tag.deleteMany();
+  await prisma.media.deleteMany();
+  await prisma.activityLog.deleteMany();
+  await prisma.pageView.deleteMany();
+  await prisma.contactMessage.deleteMany();
+  await prisma.subscriber.deleteMany();
+  await prisma.profile.deleteMany();
+  await prisma.settings.deleteMany();
+  await prisma.user.deleteMany();
+}
+
 export async function createUser(role: "superadmin" | "editor" | "content_manager", email = `${role}@test.dev`, password = "a-very-long-password") {
-  await User.create({ name: role, email, role, passwordHash: await bcrypt.hash(password, 4) });
+  await prisma.user.create({ data: { name: role, email, role, passwordHash: await bcrypt.hash(password, 4) } });
   return { email, password };
 }
 

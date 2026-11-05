@@ -1,7 +1,13 @@
-import mongoose from "mongoose";
+import { PrismaClient } from "@prisma/client";
+import { config } from "./env.js";
 
-export async function connectDb(uri: string) {
-  mongoose.set("strictQuery", true);
-  await mongoose.connect(uri, { serverSelectionTimeoutMS: 10_000 });
-  return mongoose.connection;
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient({ datasourceUrl: config.databaseUrl });
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+export async function connectDb() {
+  await prisma.$connect();
+  return prisma;
 }

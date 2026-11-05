@@ -6,12 +6,12 @@ The project is split into a **backend** (Express REST API, MVC) and a **frontend
 
 ```
 ajeneza/
-├── backend/                 Express + MongoDB API (MVC)
+├── backend/                 Express + PostgreSQL API (MVC)
 │   ├── src/
 │   │   ├── server.ts        entry point: API + Next.js frontend on process.env.PORT
 │   │   ├── app.ts           Express app (routes, security, uploads, health check)
 │   │   ├── config/          env.ts, db.ts, resources.ts (content-type registry)
-│   │   ├── models/          Mongoose schemas (M)
+│   │   ├── prisma/          PostgreSQL schema and migrations
 │   │   ├── controllers/     request handlers (C): auth, content, site, engagement, media, analytics, user
 │   │   ├── routes/          URL → controller maps: auth, public, admin
 │   │   ├── middleware/      auth & roles, CSRF, rate limits, uploads, errors, sanitising
@@ -38,12 +38,13 @@ ajeneza/
 
 ## Run locally
 
-Requirements: Node 20.9+ and MongoDB (local, Docker, or a free MongoDB Atlas cluster).
+Requirements: Node 20.9+ and PostgreSQL 16+ (local or hosted).
 
 ```bash
 npm install
-docker run -d --name mongo -p 27017:27017 mongo:7      # or use Atlas
-cp backend/.env.example backend/.env                    # set ADMIN_EMAIL / ADMIN_PASSWORD
+docker run -d --name ajeneza-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=ajeneza -p 5432:5432 postgres:16
+cp backend/.env.example backend/.env                    # set DATABASE_URL and admin credentials
+npm run db:deploy --workspace backend                   # create the PostgreSQL schema
 npm run seed                                            # first admin + starter content from the template
 npm run dev                                             # http://localhost:3000
 ```
@@ -71,10 +72,8 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). In short: push to GitHub → Rende
 
 ## Security
 
-bcrypt passwords and account lockout; short-lived JWT + rotating refresh token in httpOnly `SameSite=Strict` cookies; CSRF header on every admin write; role checks on every admin route; Zod validation; Mongo operator stripping; safe URLs only; Markdown rendered without raw HTML; upload type/size/magic-byte checks (no SVG/HTML); Helmet on the API, security headers on pages; rate limits and honeypots against spam; cookieless analytics that honour Do Not Track.
+bcrypt passwords and account lockout; short-lived JWT + rotating refresh token in httpOnly `SameSite=Strict` cookies; CSRF header on every admin write; role checks on every admin route; Zod validation; safe URLs only; Markdown rendered without raw HTML; upload type/size/magic-byte checks (no SVG/HTML); Helmet on the API, security headers on pages; rate limits and honeypots against spam; cookieless analytics that honour Do Not Track.
 
 ## Tests
 
-```bash
-MONGO_TEST_URI=mongodb://127.0.0.1:27017 npm test
-```
+Set both `DATABASE_URL` and `TEST_DATABASE_URL` to the same dedicated PostgreSQL database whose name contains `test`. Apply the schema with `npm run db:deploy --workspace backend`, then run `npm test`. The API test harness refuses to run against a database whose name does not contain `test`.

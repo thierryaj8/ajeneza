@@ -16,7 +16,7 @@ export const safeUrl = z
 const str = (max = 300) => z.string().trim().max(max);
 const longText = z.string().max(200_000);
 const optDate = z.union([z.coerce.date(), z.literal(""), z.null()]).optional().transform((v) => (v ? v : undefined));
-const objectId = z.string().regex(/^[a-f0-9]{24}$/i, "Invalid id");
+const objectId = z.string().uuid("Invalid id");
 const image = z.object({ url: safeUrl, alt: str(300).default("") });
 const link = z.object({ label: str(120), url: safeUrl });
 const strList = z.array(str(300)).max(100);

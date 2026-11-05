@@ -4,54 +4,71 @@
  *   npm run seed -- --reset # wipes content collections first (never users)
  */
 import bcrypt from "bcryptjs";
-import mongoose from "mongoose";
-import { config } from "../config/env.js";
-import { connectDb } from "../config/db.js";
+import { connectDb, prisma } from "../config/db.js";
+import { readingTimeMinutes } from "../models/common.js";
 import { slugify } from "../services/slug.service.js";
-import {
-  Article, Book, Category, Event, Profile, Project, ReadingItem, Research, Settings, TimelineEntry, User, Venture,
-} from "../models/index.js";
 import * as data from "./seed-data.js";
 
 export async function seed({ reset = false } = {}) {
   if (reset) {
-    await Promise.all(([Article, Book, Category, Event, Profile, Project, ReadingItem, Research, Settings, TimelineEntry, Venture] as mongoose.Model<any>[]).map((m) => m.deleteMany({})));
-  } else if (await Article.estimatedDocumentCount()) {
+    await prisma.$transaction([
+      prisma.comment.deleteMany(), prisma.article.deleteMany(), prisma.book.deleteMany(), prisma.project.deleteMany(),
+      prisma.venture.deleteMany(), prisma.achievement.deleteMany(), prisma.event.deleteMany(), prisma.timelineEntry.deleteMany(),
+      prisma.research.deleteMany(), prisma.readingItem.deleteMany(), prisma.category.deleteMany(), prisma.tag.deleteMany(),
+      prisma.profile.deleteMany(), prisma.settings.deleteMany(),
+    ]);
+  } else if (await prisma.article.count()) {
     console.log("Database already has content; skipping. Use --reset to replace it.");
     return;
   }
 
   const email = (process.env.ADMIN_EMAIL ?? "admin@example.com").toLowerCase();
-  let admin = await User.findOne({ email });
+  let admin = await prisma.user.findUnique({ where: { email } });
   if (!admin) {
     const password = process.env.ADMIN_PASSWORD;
     if (!password || password.length < 12) throw new Error("Set ADMIN_PASSWORD (12+ characters) to create the first administrator");
-    admin = await User.create({ name: process.env.ADMIN_NAME ?? "AJENEZA M. Thierry", email, role: "superadmin", passwordHash: await bcrypt.hash(password, 12) });
+    admin = await prisma.user.create({ data: { name: process.env.ADMIN_NAME ?? "AJENEZA M. Thierry", email, role: "superadmin", passwordHash: await bcrypt.hash(password, 12) } });
     console.log(`Created super administrator ${email}`);
   }
 
-  const published = { status: "published", createdBy: admin._id, updatedBy: admin._id };
-  await Settings.create(data.settings);
-  await Profile.create(data.profile);
-  const cats = await Category.insertMany(data.categories.map((c) => ({ ...c, slug: slugify(c.name) })));
-  const catId = (section: string, name: string) => cats.find((c) => c.section === section && c.name === name)?._id;
+  const published = { status: "published", createdBy: admin.id, updatedBy: admin.id };
+  await prisma.settings.upsert({ where: { id: "settings" }, create: { id: "settings", ...data.settings } as any, update: data.settings as any });
+  await prisma.profile.upsert({ where: { id: "profile" }, create: { id: "profile", ...data.profile } as any, update: data.profile as any });
 
-  for (const a of data.articles) {
-    await Article.create({ ...a, ...published, slug: slugify(a.title.replace("[Placeholder]", "")), category: catId(a.section, a.category), author: admin._id });
+  const categories: Awaited<ReturnType<typeof prisma.category.create>>[] = [];
+  for (const category of data.categories) categories.push(await prisma.category.create({ data: { ...category, slug: slugify(category.name) } }));
+  const categoryId = (section: string, name: string) => categories.find((category) => category.section === section && category.name === name)?.id;
+
+  for (const article of data.articles) {
+    const { category, ...fields } = article;
+    await prisma.article.create({ data: {
+      ...fields, ...published, slug: slugify(article.title.replace("[Placeholder]", "")),
+      categoryId: categoryId(article.section, category), authorId: admin.id, readingTime: readingTimeMinutes(article.body),
+    } as any });
   }
   const projects = [];
-  for (const [i, p] of data.projects.entries()) projects.push(await Project.create({ ...p, ...published, order: i, slug: slugify(p.title.replace("[Placeholder]", "")) }));
-  for (const b of data.books) await Book.create({ ...b, ...published, slug: slugify(b.title.replace("[Placeholder]", "")) });
-  for (const v of data.ventures) await Venture.create({ ...v, ...published, slug: slugify(v.title), projects: projects.slice(0, 1).map((p) => p._id) });
-  for (const e of data.events) await Event.create({ ...e, ...published, slug: slugify(e.title.replace("[Placeholder]", "")) });
-  for (const t of data.timeline) await TimelineEntry.create({ ...t, ...published, slug: slugify(t.title.replace("[Placeholder]", "")) });
-  for (const r of data.research) await Research.create({ ...r, ...published, slug: slugify(r.title.replace("[Placeholder]", "")) });
-  for (const r of data.reading) await ReadingItem.create({ ...r, ...published, slug: slugify(r.title.replace("[Placeholder]", "")) });
+  for (const [order, project] of data.projects.entries()) {
+    projects.push(await prisma.project.create({ data: { ...project, ...published, order, slug: slugify(project.title.replace("[Placeholder]", "")) } as any }));
+  }
+  for (const book of data.books) await prisma.book.create({ data: { ...book, ...published, slug: slugify(book.title.replace("[Placeholder]", "")) } as any });
+  for (const venture of data.ventures) {
+    await prisma.venture.create({ data: {
+      ...venture, ...published, slug: slugify(venture.title),
+      projects: { create: projects.slice(0, 1).map((project) => ({ project: { connect: { id: project.id } } })) },
+    } as any });
+  }
+  for (const event of data.events) await prisma.event.create({ data: { ...event, ...published, slug: slugify(event.title.replace("[Placeholder]", "")) } as any });
+  for (const entry of data.timeline) await prisma.timelineEntry.create({ data: { ...entry, ...published, slug: slugify(entry.title.replace("[Placeholder]", "")) } as any });
+  for (const entry of data.research) await prisma.research.create({ data: { ...entry, ...published, slug: slugify(entry.title.replace("[Placeholder]", "")), readingTime: readingTimeMinutes(entry.body) } as any });
+  for (const item of data.reading) await prisma.readingItem.create({ data: { ...item, ...published, slug: slugify(item.title.replace("[Placeholder]", "")) } as any });
   console.log("Seeded placeholder content.");
 }
 
 if (process.argv[1]?.endsWith("seed.ts") || process.argv[1]?.endsWith("seed.js")) {
-  await connectDb(config.mongoUri);
-  await seed({ reset: process.argv.includes("--reset") });
-  await mongoose.disconnect();
+  await connectDb();
+  try {
+    await seed({ reset: process.argv.includes("--reset") });
+  } finally {
+    await prisma.$disconnect();
+  }
 }

@@ -6,6 +6,12 @@ export class HttpError extends Error {
   }
 }
 
+export function assertUuid(id: string) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+    throw new HttpError(400, "Invalid identifier");
+  }
+}
+
 export const asyncHandler =
   (fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) =>
   (req: Request, res: Response, next: NextFunction) =>

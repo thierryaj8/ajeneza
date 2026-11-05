@@ -15,8 +15,8 @@ services:
       - key: NODE_ENV
         value: production
       # PORT is injected by Render automatically; the server listens on it.
-      - key: MONGODB_URI
-        sync: false            # paste your MongoDB Atlas connection string
+      - key: DATABASE_URL
+        sync: false            # paste the Render PostgreSQL internal URL
       - key: JWT_ACCESS_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET

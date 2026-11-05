@@ -1,0 +1,465 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String        @id @default(uuid()) @db.Uuid
+  name             String
+  email            String        @unique
+  passwordHash     String
+  role             String        @default("editor")
+  refreshTokenId   String?
+  lastLoginAt      DateTime?
+  failedLogins     Int           @default(0)
+  lockedUntil      DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  authoredArticles Article[]     @relation("ArticleAuthor")
+  activities       ActivityLog[]
+  uploadedMedia    Media[]
+}
+
+model Profile {
+  id              String   @id @default("profile")
+  name            String   @default("AJENEZA M. Thierry")
+  headline        String   @default("")
+  roles           String[] @default([])
+  shortBio        String   @default("")
+  fullBio         String   @default("")
+  story           String   @default("")
+  education       Json     @default("[]")
+  journey         String   @default("")
+  careerInterests String[] @default([])
+  philosophy      String   @default("")
+  vision          String   @default("")
+  mission         String   @default("")
+  skills          Json     @default("[]")
+  languages       Json     @default("[]")
+  aspirations     String   @default("")
+  leadershipBio   String   @default("")
+  speakingTopics  Json     @default("[]")
+  portrait        Json?
+  location        String?
+  email           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Settings {
+  id               String   @id @default("settings")
+  siteTitle        String   @default("AJENEZA M. Thierry")
+  titleTemplate    String   @default("%s | AJENEZA M. Thierry")
+  heroKicker       String   @default("A personal portfolio & journal")
+  heroTitle        String   @default("Ideas that shape us.")
+  heroHighlight    String   @default("Work that moves us.")
+  heroLede         String   @default("")
+  heroCaption      String   @default("Curious by nature. Building with purpose.")
+  tagline          String   @default("Technology. Journalism. Literature. Leadership.")
+  heroQuote        String   @default("Exploring ideas. Building solutions. Telling stories. Creating impact.")
+  description      String   @default("Journalist, author, software developer and Co-Founder of OrLabs Tech Industries.")
+  contactEmail     String?
+  socialLinks      Json     @default("[]")
+  now              Json     @default("{}")
+  mediaKit         Json     @default("{}")
+  defaultOgImage   String?
+  analyticsEnabled Boolean  @default(true)
+  commentsEnabled  Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Category {
+  id          String     @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String
+  section     String
+  description String     @default("")
+  order       Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  articles    Article[]
+  research    Research[]
+
+  @@unique([section, slug])
+  @@index([section, order, name])
+}
+
+model Tag {
+  id        String       @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String       @unique
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  articles  ArticleTag[]
+  research  ResearchTag[]
+}
+
+model Article {
+  id            String       @id @default(uuid()) @db.Uuid
+  section       String
+  title         String
+  subtitle      String       @default("")
+  slug          String
+  excerpt       String       @default("")
+  body          String       @default("")
+  coverImage    Json?
+  categoryId    String?      @db.Uuid
+  authorId      String?      @db.Uuid
+  sources       Json         @default("[]")
+  readingTime   Int          @default(1)
+  views         Int          @default(0)
+  allowComments Boolean      @default(true)
+  status        String       @default("draft")
+  publishAt     DateTime?
+  publishedAt   DateTime?
+  featured      Boolean      @default(false)
+  seo           Json?
+  createdBy     String?      @db.Uuid
+  updatedBy     String?      @db.Uuid
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  category      Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author        User?        @relation("ArticleAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  tags          ArticleTag[]
+  comments      Comment[]
+
+  @@unique([section, slug])
+  @@index([status, publishedAt])
+  @@index([featured, publishedAt])
+}
+
+model ArticleTag {
+  articleId String  @db.Uuid
+  tagId     String  @db.Uuid
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+}
+
+model Book {
+  id                String   @id @default(uuid()) @db.Uuid
+  title             String
+  subtitle          String   @default("")
+  slug              String   @unique
+  kind              String   @default("book")
+  summary           String   @default("")
+  description       String   @default("")
+  coverImage        Json?
+  publicationStatus String   @default("upcoming")
+  publisher         String?
+  publicationDate   DateTime?
+  isbn              String?
+  pages             Int?
+  genre             String?
+  excerpts          Json     @default("[]")
+  recommendations   Json     @default("[]")
+  purchaseLinks     Json     @default("[]")
+  downloadUrl       String?
+  order             Int      @default(0)
+  status            String   @default("draft")
+  publishAt         DateTime?
+  publishedAt       DateTime?
+  featured          Boolean  @default(false)
+  seo               Json?
+  createdBy         String?  @db.Uuid
+  updatedBy         String?  @db.Uuid
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+model Project {
+  id           String           @id @default(uuid()) @db.Uuid
+  title        String
+  slug         String           @unique
+  summary      String           @default("")
+  description  String           @default("")
+  problem      String           @default("")
+  objectives   String[]         @default([])
+  features     String[]         @default([])
+  technologies String[]         @default([])
+  categories   String[]         @default([])
+  images       Json             @default("[]")
+  devStatus    String           @default("planning")
+  githubUrl    String?
+  liveUrl      String?
+  docsUrl      String?
+  dateCreated  DateTime?
+  views        Int              @default(0)
+  order        Int              @default(0)
+  status       String           @default("draft")
+  publishAt    DateTime?
+  publishedAt  DateTime?
+  featured     Boolean          @default(false)
+  seo          Json?
+  createdBy    String?          @db.Uuid
+  updatedBy    String?          @db.Uuid
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  ventures     VentureProject[]
+
+  @@index([status, publishedAt])
+  @@index([featured, order])
+}
+
+model Venture {
+  id            String           @id @default(uuid()) @db.Uuid
+  title         String
+  slug          String           @unique
+  role          String           @default("")
+  summary       String           @default("")
+  description   String           @default("")
+  mission       String           @default("")
+  vision        String           @default("")
+  services      Json             @default("[]")
+  solutions     String[]         @default([])
+  products      Json             @default("[]")
+  achievements  String[]         @default([])
+  collaboration String           @default("")
+  website       String?
+  socialLinks   Json             @default("[]")
+  logo          Json?
+  foundedYear   Int?
+  order         Int              @default(0)
+  status        String           @default("draft")
+  publishAt     DateTime?
+  publishedAt   DateTime?
+  featured      Boolean          @default(false)
+  seo           Json?
+  createdBy     String?          @db.Uuid
+  updatedBy     String?          @db.Uuid
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  projects      VentureProject[]
+
+  @@index([status, publishedAt])
+}
+
+model VentureProject {
+  ventureId String  @db.Uuid
+  projectId String  @db.Uuid
+  venture   Venture @relation(fields: [ventureId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([ventureId, projectId])
+}
+
+model Achievement {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String
+  slug        String   @unique
+  description String   @default("")
+  issuer      String?
+  date        DateTime?
+  link        String?
+  status      String   @default("draft")
+  publishAt   DateTime?
+  publishedAt DateTime?
+  featured    Boolean  @default(false)
+  seo         Json?
+  createdBy   String?  @db.Uuid
+  updatedBy   String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+model Event {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String
+  slug        String   @unique
+  type        String   @default("speaking")
+  date        DateTime?
+  location    String?
+  organizer   String?
+  topic       String?
+  description String   @default("")
+  images      Json     @default("[]")
+  link        String?
+  status      String   @default("draft")
+  publishAt   DateTime?
+  publishedAt DateTime?
+  featured    Boolean  @default(false)
+  seo         Json?
+  createdBy   String?  @db.Uuid
+  updatedBy   String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+model TimelineEntry {
+  id           String   @id @default(uuid()) @db.Uuid
+  title        String
+  slug         String   @unique
+  category     String   @default("career")
+  date         DateTime
+  endDate      DateTime?
+  organization String?
+  description  String   @default("")
+  link         String?
+  status       String   @default("draft")
+  publishAt    DateTime?
+  publishedAt  DateTime?
+  featured     Boolean  @default(false)
+  seo          Json?
+  createdBy    String?  @db.Uuid
+  updatedBy    String?  @db.Uuid
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+model Research {
+  id          String        @id @default(uuid()) @db.Uuid
+  title       String
+  slug        String        @unique
+  kind        String        @default("insight")
+  abstract    String        @default("")
+  body        String        @default("")
+  coverImage  Json?
+  categoryId  String?       @db.Uuid
+  attachments Json          @default("[]")
+  readingTime Int           @default(1)
+  status      String        @default("draft")
+  publishAt   DateTime?
+  publishedAt DateTime?
+  featured    Boolean       @default(false)
+  seo         Json?
+  createdBy   String?       @db.Uuid
+  updatedBy   String?       @db.Uuid
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  category    Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags        ResearchTag[]
+
+  @@index([status, publishedAt])
+}
+
+model ResearchTag {
+  researchId String   @db.Uuid
+  tagId      String   @db.Uuid
+  research   Research @relation(fields: [researchId], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([researchId, tagId])
+}
+
+model ReadingItem {
+  id         String   @id @default(uuid()) @db.Uuid
+  title      String
+  slug       String   @unique
+  author     String   @default("")
+  type       String   @default("book")
+  url        String?
+  note       String   @default("")
+  coverImage Json?
+  shelf      String   @default("recommended")
+  status     String   @default("draft")
+  publishAt  DateTime?
+  publishedAt DateTime?
+  featured   Boolean  @default(false)
+  seo        Json?
+  createdBy  String?  @db.Uuid
+  updatedBy  String?  @db.Uuid
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+model ContactMessage {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  email        String
+  organization String?
+  subject      String
+  message      String
+  category     String   @default("general")
+  status       String   @default("new")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model Subscriber {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  name      String?
+  status    String   @default("active")
+  source    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model Comment {
+  id        String   @id @default(uuid()) @db.Uuid
+  articleId String   @db.Uuid
+  name      String
+  email     String
+  body      String
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+}
+
+model Media {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  url        String
+  provider   String
+  providerId String?
+  kind       String
+  mimeType   String?
+  size       Int?
+  width      Int?
+  height     Int?
+  alt        String   @default("")
+  folder     String   @default("general")
+  uploadedBy String?  @db.Uuid
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  uploader   User?    @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)
+
+  @@index([kind, folder, createdAt])
+}
+
+model ActivityLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @db.Uuid
+  action     String
+  resource   String?
+  resourceId String?
+  summary    String?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+}
+
+model PageView {
+  id           String   @id @default(uuid()) @db.Uuid
+  path         String
+  referrerHost String?
+  country      String?
+  day          String
+  createdAt    DateTime @default(now())
+
+  @@index([day, path])
+}

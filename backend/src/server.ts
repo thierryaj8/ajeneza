@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import nextModule from "next";
 import { config } from "./config/env.js";
-import { connectDb } from "./config/db.js";
+import { connectDb, prisma } from "./config/db.js";
 import { createApp } from "./app.js";
 
 // `next` is CommonJS; under Node ESM its function may sit on `.default`.
@@ -18,8 +18,8 @@ const frontendDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 // The frontend calls the API on this same server when rendering pages.
 process.env.API_URL ??= `http://127.0.0.1:${config.port}`;
 
-const conn = await connectDb(config.mongoUri);
-console.log(`[db] connected to ${conn.name}`);
+await connectDb();
+console.log("[db] connected to PostgreSQL");
 
 const nextApp = next({ dev: !config.isProd, dir: frontendDir });
 await nextApp.prepare();
@@ -34,7 +34,7 @@ if (!config.isProd) server.on("upgrade", nextApp.getUpgradeHandler()); // hot re
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, async () => {
     server.close();
-    await conn.close();
+    await prisma.$disconnect();
     process.exit(0);
   });
 }

@@ -1,9 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import request from "supertest";
 import { createUser, loginAgent, startTestEnv } from "./setup.js";
-import { Article, Comment, ContactMessage, Subscriber } from "../src/models/index.js";
-
-process.env.NODE_ENV = "test";
+import { prisma } from "../src/config/db.js";
 const XHR = { "X-Requested-With": "XMLHttpRequest" };
 
 let env: Awaited<ReturnType<typeof startTestEnv>>;
@@ -111,7 +109,7 @@ describe("visitor interactions", () => {
     expect(ok.status).toBe(201);
     const spam = await request(env.app).post("/api/v1/contact").send({ name: "Bot", email: "bot@example.com", subject: "Buy", message: "Spam spam spam spam", website: "x" });
     expect(spam.status).toBe(422); // honeypot must be empty
-    expect(await ContactMessage.countDocuments()).toBe(1);
+    expect(await prisma.contactMessage.count()).toBe(1);
 
     const inbox = await admin.get("/api/v1/admin/messages");
     expect(inbox.body.total).toBe(1);
@@ -122,7 +120,7 @@ describe("visitor interactions", () => {
   it("subscribes idempotently", async () => {
     await request(env.app).post("/api/v1/newsletter/subscribe").send({ email: "Reader@Example.com" });
     await request(env.app).post("/api/v1/newsletter/subscribe").send({ email: "reader@example.com" });
-    expect(await Subscriber.countDocuments()).toBe(1);
+    expect(await prisma.subscriber.count()).toBe(1);
     const csv = await admin.get("/api/v1/admin/subscribers/export");
     expect(csv.text).toContain("reader@example.com");
   });
@@ -131,15 +129,15 @@ describe("visitor interactions", () => {
     const res = await request(env.app).post("/api/v1/articles/african-development-and-innovation/comments").send({ name: "R", email: "r@example.com", body: "Great piece" });
     expect(res.status).toBe(202);
     expect((await request(env.app).get("/api/v1/articles/african-development-and-innovation/comments")).body).toHaveLength(0);
-    const c = await Comment.findOne();
-    await admin.patch(`/api/v1/admin/comments/${c!._id}/status`).set(XHR).send({ status: "approved" });
+    const c = await prisma.comment.findFirst();
+    await admin.patch(`/api/v1/admin/comments/${c!.id}/status`).set(XHR).send({ status: "approved" });
     expect((await request(env.app).get("/api/v1/articles/african-development-and-innovation/comments")).body).toHaveLength(1);
   });
 
   it("records page views without personal data and counts article views", async () => {
     await request(env.app).post("/api/v1/track").send({ path: "/journalism/african-development-and-innovation", referrer: "https://news.example.org/x" });
     await request(env.app).post("/api/v1/track").set("DNT", "1").send({ path: "/" });
-    const a = await Article.findOne({ section: "journalism", slug: "african-development-and-innovation" });
+    const a = await prisma.article.findFirst({ where: { section: "journalism", slug: "african-development-and-innovation" } });
     expect(a!.views).toBe(1);
     const analytics = await admin.get("/api/v1/admin/dashboard/analytics?days=7");
     expect(analytics.body.totalViews).toBe(1);

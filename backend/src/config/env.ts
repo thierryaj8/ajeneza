@@ -16,7 +16,7 @@ export const config = {
   // Render (and most hosts) inject PORT; never hard-code it.
   port: Number(env.PORT ?? 3000),
   host: env.HOST ?? "0.0.0.0",
-  mongoUri: env.MONGODB_URI ?? "mongodb://127.0.0.1:27017/ajeneza",
+  databaseUrl: required("DATABASE_URL", isProd ? undefined : "postgresql://postgres:postgres@localhost:5432/ajeneza?schema=public"),
   jwtAccessSecret: required("JWT_ACCESS_SECRET", isProd ? undefined : "change-me-access-dev"),
   jwtRefreshSecret: required("JWT_REFRESH_SECRET", isProd ? undefined : "change-me-refresh-dev"),
   accessTtlSeconds: 15 * 60,

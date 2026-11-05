@@ -2,11 +2,8 @@
 
 The backend's `server.ts` starts Express **and** the Next.js frontend in one process, listening on `process.env.PORT`. Render sets `PORT` for you (usually 10000), so there is nothing to configure for ports and no separate frontend service.
 
-## 1. Database: MongoDB Atlas (free tier is fine)
-1. Create a cluster and a database user.
-2. Network Access → allow `0.0.0.0/0` (Render's outbound IPs vary) or Render's static IPs if you have them.
-3. Copy the connection string, e.g. `mongodb+srv://user:pass@cluster.xxxxx.mongodb.net/ajeneza`.
-4. Turn on Cloud Backup for automated backups.
+## 1. Database: PostgreSQL
+Create a PostgreSQL database in Render, then copy its **Internal Database URL** into the web service's `DATABASE_URL` environment variable. Keep the database and web service in the same Render region. Render runs the Prisma migration before starting the server and creates the empty schema on first deploy. Enable automated backups for production.
 
 ## 2. Media: Cloudinary (recommended)
 Render's filesystem is reset on every deploy, so uploaded images would disappear. Create a free Cloudinary account and copy `CLOUDINARY_URL`.
@@ -30,7 +27,7 @@ Environment variables:
 | --- | --- |
 | `NODE_ENV` | `production` |
 | `NODE_VERSION` | `22` |
-| `MONGODB_URI` | Atlas connection string |
+| `DATABASE_URL` | Render PostgreSQL internal database URL |
 | `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | two different long random strings |
 | `NEXT_PUBLIC_SITE_URL` | your public URL, e.g. `https://ajeneza-thierry.onrender.com` |
 | `CLOUDINARY_URL` | from Cloudinary |
@@ -40,7 +37,7 @@ Environment variables:
 Do **not** set `PORT`; Render provides it.
 
 ## 4. First run
-Open the service's **Shell** tab on Render and run once:
+After the first successful deploy, open the service's **Shell** tab on Render and seed the new database:
 
 ```bash
 npm run seed          # creates the admin and the starter content from the template
@@ -61,6 +58,9 @@ Render → your service → Settings → Custom Domains → add your domain and 
 - [ ] Review the privacy notice (`frontend/src/app/(site)/privacy/page.tsx`).
 - [ ] Submit `/sitemap.xml` to Google Search Console.
 - [ ] Confirm Atlas backups are on.
+
+## Local API Tests
+Set both `DATABASE_URL` and `TEST_DATABASE_URL` to the same dedicated PostgreSQL database whose name contains `test`. Apply the schema with `npm run db:deploy --workspace backend`, then run `npm test --workspace backend`. The test harness refuses to run against a database whose name does not contain `test`.
 
 ## Troubleshooting
 - **Build fails with "tsc: not found" or missing Tailwind**: the build command must include `--include=dev`.
