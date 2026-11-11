@@ -12,7 +12,7 @@
     "db:deploy": "prisma migrate deploy --schema prisma/schema.prisma",
     "db:push": "prisma db push --schema prisma/schema.prisma",
     "seed": "tsx src/scripts/seed.ts",
-    "create-admin": "tsx src/scripts/create-admin.ts",
+    "create-admin": "tsx src/scripts/recover-admin.ts",
     "typecheck": "npm run db:generate && tsc --noEmit",
     "test": "vitest run"
   },
