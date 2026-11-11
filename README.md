@@ -45,7 +45,7 @@ npm install
 docker run -d --name ajeneza-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=ajeneza -p 5432:5432 postgres:16
 cp backend/.env.example backend/.env                    # set DATABASE_URL and admin credentials
 npm run db:deploy --workspace backend                   # create the PostgreSQL schema
-npm run seed                                            # first admin + starter content from the template
+npm run seed                                            # first admin + starter content (the admin is also created on startup when ADMIN_EMAIL/ADMIN_PASSWORD are set)
 npm run dev                                             # http://localhost:3000
 ```
 

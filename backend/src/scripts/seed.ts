@@ -10,6 +10,20 @@ import { slugify } from "../services/slug.service.js";
 import * as data from "./seed-data.js";
 
 export async function seed({ reset = false } = {}) {
+  // Ensure the administrator exists before the content check below can return
+  // early, so `npm run seed` also repairs a database that has content but no
+  // usable login (for example after recreating the database).
+  const email = (process.env.ADMIN_EMAIL ?? "admin@example.com").toLowerCase();
+  let admin =
+    (await prisma.user.findFirst({ where: { role: "superadmin" } })) ??
+    (await prisma.user.findUnique({ where: { email } }));
+  if (!admin) {
+    const password = process.env.ADMIN_PASSWORD;
+    if (!password || password.length < 12) throw new Error("Set ADMIN_PASSWORD (12+ characters) to create the first administrator");
+    admin = await prisma.user.create({ data: { name: process.env.ADMIN_NAME ?? "AJENEZA M. Thierry", email, role: "superadmin", passwordHash: await bcrypt.hash(password, 12) } });
+    console.log(`Created super administrator ${email}`);
+  }
+
   if (reset) {
     await prisma.$transaction([
       prisma.comment.deleteMany(), prisma.article.deleteMany(), prisma.book.deleteMany(), prisma.project.deleteMany(),
@@ -20,15 +34,6 @@ export async function seed({ reset = false } = {}) {
   } else if (await prisma.article.count()) {
     console.log("Database already has content; skipping. Use --reset to replace it.");
     return;
-  }
-
-  const email = (process.env.ADMIN_EMAIL ?? "admin@example.com").toLowerCase();
-  let admin = await prisma.user.findUnique({ where: { email } });
-  if (!admin) {
-    const password = process.env.ADMIN_PASSWORD;
-    if (!password || password.length < 12) throw new Error("Set ADMIN_PASSWORD (12+ characters) to create the first administrator");
-    admin = await prisma.user.create({ data: { name: process.env.ADMIN_NAME ?? "AJENEZA M. Thierry", email, role: "superadmin", passwordHash: await bcrypt.hash(password, 12) } });
-    console.log(`Created super administrator ${email}`);
   }
 
   const published = { status: "published", createdBy: admin.id, updatedBy: admin.id };

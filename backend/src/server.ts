@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import nextModule from "next";
 import { config } from "./config/env.js";
 import { connectDb, prisma } from "./config/db.js";
+import { ensureFirstAdmin } from "./services/bootstrap.service.js";
 import { createApp } from "./app.js";
 
 // `next` is CommonJS; under Node ESM its function may sit on `.default`.
@@ -20,6 +21,7 @@ process.env.API_URL ??= `http://127.0.0.1:${config.port}`;
 
 await connectDb();
 console.log("[db] connected to PostgreSQL");
+await ensureFirstAdmin();
 
 const nextApp = next({ dev: !config.isProd, dir: frontendDir });
 await nextApp.prepare();

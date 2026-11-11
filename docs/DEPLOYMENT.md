@@ -42,11 +42,13 @@ Do **not** set `PORT`; Render provides it.
 For local development with the frontend on a separate port, set `NEXT_PUBLIC_API_URL` to the backend origin (for example `http://localhost:3000`) and set the backend's `CORS_ORIGINS` to the frontend origin (for example `http://localhost:3001`). In production, keep the frontend and API on the same origin (or route `/api/v1` through a same-origin reverse proxy) so admin cookies are visible to the frontend middleware.
 
 ## 4. First run
-After the first successful deploy, open the service's **Shell** tab on Render and seed the new database:
+When `ADMIN_EMAIL` and `ADMIN_PASSWORD` (12+ characters) are set, the server creates the first super administrator automatically on startup if the `User` table is empty. This repairs a freshly recreated database without manual steps.
+
+You can also seed manually from the service's **Shell** tab on Render:
 
 ```bash
-npm run seed          # creates the admin and the starter content from the template
-# or, admin only:
+npm run seed          # ensures the admin exists and adds the starter content
+# or, admin only (also resets an existing admin's password):
 npm run create-admin
 ```
 
