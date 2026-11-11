@@ -1,7 +1,9 @@
-/** Browser-side helpers. Requests go through the same-origin /api/v1 proxy. */
+import { apiUrl } from "./api-url";
+
+/** Browser-side requests use the configured API origin or the current origin. */
 export async function postJson(path: string, body: unknown): Promise<{ ok: true; data: any } | { ok: false; error: string }> {
   try {
-    const res = await fetch(`/api/v1${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const res = await fetch(apiUrl(path), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), credentials: "include" });
     const data = await res.json().catch(() => ({}));
     if (res.ok) return { ok: true, data };
     const detail = Array.isArray(data.details) ? data.details.map((d: { path: string; message: string }) => `${d.path}: ${d.message}`).join("; ") : "";

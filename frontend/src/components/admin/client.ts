@@ -1,4 +1,5 @@
 "use client";
+import { apiUrl } from "@/lib/api-url";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string, public details?: { path: string; message: string }[]) { super(message); }
@@ -6,18 +7,18 @@ export class ApiError extends Error {
 
 let refreshing: Promise<boolean> | null = null;
 async function refresh() {
-  refreshing ??= fetch("/api/v1/auth/refresh", { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest" } })
+  refreshing ??= fetch(apiUrl("/auth/refresh"), { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest" }, credentials: "include" })
     .then((r) => r.ok)
     .finally(() => setTimeout(() => (refreshing = null), 0));
   return refreshing;
 }
 
-/** Admin API call: same-origin, cookie auth, CSRF header, transparent token refresh. */
+/** Admin API call: cookie auth, CSRF header, transparent token refresh. */
 export async function adminFetch<T = any>(path: string, init: RequestInit & { json?: unknown } = {}, retry = true): Promise<T> {
   const headers: Record<string, string> = { "X-Requested-With": "XMLHttpRequest", ...(init.headers as Record<string, string>) };
   let body = init.body;
   if (init.json !== undefined) { headers["Content-Type"] = "application/json"; body = JSON.stringify(init.json); }
-  const res = await fetch(`/api/v1${path}`, { ...init, headers, body, cache: "no-store" });
+  const res = await fetch(apiUrl(path), { ...init, headers, body, cache: "no-store", credentials: "include" });
   if (res.status === 401 && retry && !path.startsWith("/auth/")) {
     if (await refresh()) return adminFetch<T>(path, init, false);
     window.location.href = `/admin/login?next=${encodeURIComponent(window.location.pathname)}`;

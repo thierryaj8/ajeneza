@@ -30,11 +30,14 @@ Environment variables:
 | `DATABASE_URL` | Render PostgreSQL internal database URL |
 | `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | two different long random strings |
 | `NEXT_PUBLIC_SITE_URL` | your public URL, e.g. `https://ajeneza-thierry.onrender.com` |
+| `NEXT_PUBLIC_API_URL` | optional API origin when the frontend is hosted separately; leave unset when using the single-service setup |
 | `CLOUDINARY_URL` | from Cloudinary |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | first administrator (12+ character password) |
 | `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `NOTIFY_EMAIL` | optional: email alerts for contact messages |
 
 Do **not** set `PORT`; Render provides it.
+
+For local development with the frontend on a separate port, set `NEXT_PUBLIC_API_URL` to the backend origin (for example `http://localhost:3000`) and set the backend's `CORS_ORIGINS` to the frontend origin (for example `http://localhost:3001`). In production, keep the frontend and API on the same origin (or route `/api/v1` through a same-origin reverse proxy) so admin cookies are visible to the frontend middleware.
 
 ## 4. First run
 After the first successful deploy, open the service's **Shell** tab on Render and seed the new database:

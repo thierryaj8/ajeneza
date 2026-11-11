@@ -1,4 +1,5 @@
 "use client";
+import { apiUrl } from "@/lib/api-url";
 import { useEffect, useState } from "react";
 import { MessageSquare } from "lucide-react";
 import { postJson } from "@/lib/client";
@@ -13,7 +14,7 @@ export function Comments({ slug }: { slug: string }) {
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/v1/articles/${slug}/comments`).then((r) => (r.ok ? r.json() : [])).then(setComments).catch(() => {});
+    fetch(apiUrl(`/articles/${slug}/comments`), { credentials: "include" }).then((r) => (r.ok ? r.json() : [])).then(setComments).catch(() => {});
   }, [slug]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
