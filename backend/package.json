@@ -7,7 +7,7 @@
     "dev": "tsx src/server.ts",
     "build": "npm run db:generate && tsc -p tsconfig.json",
     "prestart": "prisma migrate deploy --schema prisma/schema.prisma",
-    "start": "NODE_ENV=production node dist/server.js",
+    "start": "node dist/server.js",
     "db:generate": "prisma generate --schema prisma/schema.prisma",
     "db:deploy": "prisma migrate deploy --schema prisma/schema.prisma",
     "db:push": "prisma db push --schema prisma/schema.prisma",

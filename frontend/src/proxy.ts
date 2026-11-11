@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 /** Coarse gate for the admin UI. Real authorisation is enforced by the API on every request. */
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (pathname === "/admin/login") return NextResponse.next();
   if (!req.cookies.has("am_session") && !req.cookies.has("am_access")) {

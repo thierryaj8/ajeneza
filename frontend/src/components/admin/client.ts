@@ -5,6 +5,9 @@ export class ApiError extends Error {
   constructor(public status: number, message: string, public details?: { path: string; message: string }[]) { super(message); }
 }
 
+/** Endpoints that must never trigger a token refresh (avoids refresh loops). */
+const NO_REFRESH = new Set(["/auth/login", "/auth/refresh", "/auth/logout"]);
+
 let refreshing: Promise<boolean> | null = null;
 async function refresh() {
   refreshing ??= fetch(apiUrl("/auth/refresh"), { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest" }, credentials: "include" })
@@ -19,15 +22,16 @@ export async function adminFetch<T = any>(path: string, init: RequestInit & { js
   let body = init.body;
   if (init.json !== undefined) { headers["Content-Type"] = "application/json"; body = JSON.stringify(init.json); }
   const res = await fetch(apiUrl(path), { ...init, headers, body, cache: "no-store", credentials: "include" });
-  if (res.status === 401 && retry && !path.startsWith("/auth/")) {
+  const canRefresh = !NO_REFRESH.has(path);
+  if (res.status === 401 && retry && canRefresh) {
     if (await refresh()) return adminFetch<T>(path, init, false);
     window.location.href = `/admin/login?next=${encodeURIComponent(window.location.pathname)}`;
     throw new ApiError(401, "Session expired");
   }
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
-  if (res.status === 401 && path.startsWith("/auth/")) {
-    throw new ApiError(401, data.error ?? "Invalid username or password", data.details);
+  if (res.status === 401 && !canRefresh) {
+    throw new ApiError(401, data.error ?? (path === "/auth/login" ? "Invalid username or password" : "Session expired"), data.details);
   }
   if (!res.ok) throw new ApiError(res.status, data.error ?? "Request failed", data.details);
   return data as T;

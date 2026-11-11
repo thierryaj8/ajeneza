@@ -17,9 +17,13 @@ export default function MessagesPage() {
   useEffect(() => { load(); }, [load]);
 
   async function mark(m: Msg, s: string) {
-    const updated = await adminFetch<Msg>(`/admin/messages/${m._id}/status`, { method: "PATCH", json: { status: s } });
-    setItems((list) => list.map((x) => (x._id === m._id ? updated : x)));
-    setOpen((o) => (o?._id === m._id ? updated : o));
+    try {
+      const updated = await adminFetch<Msg>(`/admin/messages/${m._id}/status`, { method: "PATCH", json: { status: s } });
+      setItems((list) => list.map((x) => (x._id === m._id ? updated : x)));
+      setOpen((o) => (o?._id === m._id ? updated : o));
+    } catch (e) {
+      setError(errorText(e));
+    }
   }
   async function remove(m: Msg) {
     if (!confirm("Delete this message?")) return;

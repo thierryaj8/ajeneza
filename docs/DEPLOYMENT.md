@@ -37,6 +37,8 @@ Environment variables:
 
 Do **not** set `PORT`; Render provides it.
 
+> **Secrets:** never commit `backend/.env` or real credentials. If a secret has ever been pushed to git, rotate it (database password, Cloudinary key/secret, JWT secrets and admin password) and purge it from history before making the repository public.
+
 For local development with the frontend on a separate port, set `NEXT_PUBLIC_API_URL` to the backend origin (for example `http://localhost:3000`) and set the backend's `CORS_ORIGINS` to the frontend origin (for example `http://localhost:3001`). In production, keep the frontend and API on the same origin (or route `/api/v1` through a same-origin reverse proxy) so admin cookies are visible to the frontend middleware.
 
 ## 4. First run
@@ -60,7 +62,7 @@ Render → your service → Settings → Custom Domains → add your domain and 
 - [ ] Set OrLabs' official website and social links (Admin → Ventures).
 - [ ] Review the privacy notice (`frontend/src/app/(site)/privacy/page.tsx`).
 - [ ] Submit `/sitemap.xml` to Google Search Console.
-- [ ] Confirm Atlas backups are on.
+- [ ] Confirm Render PostgreSQL backups are enabled.
 
 ## Local API Tests
 Set both `DATABASE_URL` and `TEST_DATABASE_URL` to the same dedicated PostgreSQL database whose name contains `test`. Apply the schema with `npm run db:deploy --workspace backend`, then run `npm test --workspace backend`. The test harness refuses to run against a database whose name does not contain `test`.

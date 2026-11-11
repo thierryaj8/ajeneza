@@ -1,7 +1,20 @@
 /** Site-wide constants. The owner's name is set once here. */
 export const SITE_NAME = "AJENEZA M. Thierry";
 export const SITE_TAGLINE = "Ideas · Innovation · Impact";
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+
+/** Canonical origin used by metadata, sitemap and feeds. Invalid values fall back instead of failing the build. */
+function siteUrl() {
+  const fallback = "http://localhost:3000";
+  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim() || fallback;
+  try {
+    return new URL(raw).origin;
+  } catch {
+    console.warn(`[site] NEXT_PUBLIC_SITE_URL is not a valid URL (${raw}); using ${fallback}.`);
+    return fallback;
+  }
+}
+
+export const SITE_URL = siteUrl();
 
 export const NAV = [
   { href: "/", label: "Home" },

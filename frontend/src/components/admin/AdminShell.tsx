@@ -60,7 +60,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  useEffect(() => { adminFetch<{ user: Me }>("/auth/me").then((r) => setMe(r.user)).catch(() => {}); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    adminFetch<{ user: Me }>("/auth/me")
+      .then((r) => { if (!cancelled) setMe(r.user); })
+      .catch(() => {
+        // adminFetch already redirects on an expired session; this covers network
+        // errors too so the shell never stays on "Loading…" forever.
+        if (!cancelled) router.replace(`/admin/login?next=${encodeURIComponent(window.location.pathname)}`);
+      });
+    return () => { cancelled = true; };
+  }, [router]);
   useEffect(() => setOpen(false), [pathname]);
 
   async function logout() {

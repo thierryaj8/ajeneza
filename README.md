@@ -52,7 +52,7 @@ npm run dev                                             # http://localhost:3000
 - Website: http://localhost:3000
 - Admin: http://localhost:3000/admin
 
-Production mode locally: `npm run build && npm start` (set `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` first; production refuses to start without them).
+Production mode locally: `npm run build && npm start` (the build forces `NODE_ENV=production`; set `NODE_ENV=production` in your shell before `npm start`, and set `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` first because production refuses to start without them).
 
 > Starter content comes from the template. Everything marked `[Placeholder]`, all article bodies, and the project and book entries (which are concepts) must be replaced with real, verified information in the admin before launch.
 

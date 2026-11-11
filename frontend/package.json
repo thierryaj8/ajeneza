@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "node scripts/build.mjs",
     "lint": "tsc --noEmit",
     "dev:standalone": "next dev -p 3001"
   },
