@@ -25,6 +25,9 @@ export async function adminFetch<T = any>(path: string, init: RequestInit & { js
   }
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401 && path.startsWith("/auth/")) {
+    throw new ApiError(401, data.error ?? "Invalid username or password", data.details);
+  }
   if (!res.ok) throw new ApiError(res.status, data.error ?? "Request failed", data.details);
   return data as T;
 }
