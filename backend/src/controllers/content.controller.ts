@@ -99,7 +99,9 @@ export const publicList = (def: ResourceDef) => async (req: Request, res: Respon
   }
   const search = q(req, "q");
   if (search) where.AND = [{ OR: searchWhere(def, search) }];
-  const sort = q(req, "sort") === "popular" && ["articles", "projects"].includes(def.name) ? { views: "desc" } : def.publicSort;
+  const sort = q(req, "sort") === "popular" && ["articles", "projects"].includes(def.name)
+    ? [{ views: "desc" }]
+    : Object.entries(def.publicSort).map(([field, direction]) => ({ [field]: direction }));
   const [items, total] = await Promise.all([
     def.model.findMany({ where, orderBy: sort, skip, take: limit, include: includeOf(def) }),
     def.model.count({ where }),

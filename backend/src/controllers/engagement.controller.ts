@@ -18,7 +18,8 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export async function submitContact(req: Request, res: Response) {
   const data = schemas.contact.parse(req.body);
-  const msg = await prisma.contactMessage.create({ data });
+  const { website: _honeypot, ...message } = data;
+  const msg = await prisma.contactMessage.create({ data: message });
   void notify(
     `[Website] ${CATEGORY_LABELS[data.category]}: ${data.subject}`,
     `From: ${data.name} <${data.email}>\nOrganization: ${data.organization || "-"}\nCategory: ${CATEGORY_LABELS[data.category]}\n\n${data.message}`,
